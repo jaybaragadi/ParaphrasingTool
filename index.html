@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Paraphrasing Tool</title>
+
+  <!-- Telugu + Bengali fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Telugu:wght@400;700&family=Noto+Sans+Bengali:wght@400;700&display=swap" rel="stylesheet">
+
+  <style>
+    *{margin:0;padding:0;box-sizing:border-box}
+    body{
+      font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;
+      background:linear-gradient(135deg,#734385 0%,#8a3572 100%);
+      min-height:100vh;padding:20px
+    }
+    .container{
+      max-width:1300px;margin:50px auto;background:#ae9caf;border-radius:20px;
+      box-shadow:0 20px 60px rgba(0,0,0,0.3);overflow:hidden
+    }
+    .header{background:#ae9caf;color:#fff;padding:30px;text-align:center}
+    .header h1{font-size:2.2em;margin-bottom:8px; color:#734385}
+    .header p{opacity:.9}
+    .content{padding:40px}
+
+    .lang-toggle{
+      display:flex;align-items:center;gap:10px;margin-bottom:20px
+    }
+    .lang-btn{
+      padding:6px 14px;border-radius:999px;border:1px solid #fff;
+      background:rgba(255,255,255,0.15);color:#fff;font-size:.9em;
+      cursor:pointer;backdrop-filter:blur(4px)
+    }
+    .lang-btn.active{
+      background:#fff;color:#8a3572;font-weight:700;
+      box-shadow:0 4px 10px rgba(0,0,0,0.15)
+    }
+
+    .input-section label{display:block;font-size:1.05em;font-weight:600;margin-bottom:10px}
+    .input-wrapper{display:flex;gap:10px;margin-bottom:20px}
+    #telugu-input{
+      flex:1;padding:15px;font-size:1.3em;border:2px solid #ddd;border-radius:10px;
+      font-family:'Noto Sans Telugu','Noto Sans Bengali',sans-serif
+    }
+    .predict-btn,
+    .clear-btn{
+      padding:14px 28px;font-size:1.05em;
+      background:linear-gradient(135deg,#762b7a 0%,#cd659b 100%);
+      color:#fff;border:none;border-radius:10px;cursor:pointer;font-weight:600
+    }
+    .predict-btn:hover,.clear-btn:hover{
+      transform:translateY(-2px);box-shadow:0 10px 20px rgb(99,115,184)
+    }
+
+    /* Romanized Sentence box */
+    .romanized-container{
+      background:#fff;
+      padding:15px 20px;
+      border-radius:10px;
+      margin:20px 0;
+      display:none;
+    }
+    .romanized-container.show{display:block}
+    .romanized-label{
+      font-size:1.1em;color:#666;font-weight:700;margin-bottom:6px
+    }
+    .romanized-text{
+      font-size:1.8em;color:#734385;font-family:monospace;line-height:1.6
+    }
+
+    .segments-container{
+      background:#fff;border-radius:12px;padding:30px;min-height:120px;
+      border:2px dashed #ddd;margin-top:20px
+    }
+    .segment{
+      display:inline-block;padding:12px 20px;margin:8px;font-size:1.35em;
+      font-family:'Noto Sans Telugu','Noto Sans Bengali',sans-serif;border-radius:10px;cursor:move;
+      position:relative;box-shadow:0 4px 10px rgba(0,0,0,0.1)
+    }
+    .segment:hover{transform:translateY(-4px);box-shadow:0 8px 20px rgba(0,0,0,0.2)}
+    .segment.color-1{background:linear-gradient(135deg,#762b7a 0%,#762b7a 100%);color:#fff}
+    .segment.color-2{background:linear-gradient(135deg,#762b7a 0%,#cd659b 100%);color:#fff}
+    .segment.color-3{background:linear-gradient(135deg,#762b7a 0%,#762b7a 100%);color:#fff}
+    .segment.color-4{background:linear-gradient(135deg,#762b7a 0%,#cd659b 100%);color:#fff}
+    .segment.color-5{background:linear-gradient(135deg,#762b7a 0%,#762b7a 100%);color:#fff}
+    .segment.color-6{background:linear-gradient(135deg,#762b7a 0%,#cd659b 100%);color:#fff}
+    .segment.color-7{background:linear-gradient(135deg,#762b7a 0%,#762b7a 100%);color:#fff}
+    .segment.color-8{background:linear-gradient(135deg,#762b7a 0%,#cd659b 100%);color:#fff}
+    .segment.color-9{background:linear-gradient(135deg,#762b7a 0%,#762b7a 100%);color:#fff}
+
+    /* Tooltip */
+    .word{
+      position:relative;
+      padding:0 2px;
+      border-bottom:1px dotted rgba(255,255,255,0.6);
+      cursor:help
+    }
+    .word-tooltip{
+      position:absolute;bottom:130%;left:50%;transform:translateX(-50%);
+      background:rgba(20,20,20,0.98);color:#fff;padding:12px 14px;border-radius:10px;
+      font-size:.9em;opacity:0;pointer-events:auto;transition:opacity .2s;z-index:20;
+      white-space:normal;max-width:360px;box-shadow:0 8px 24px rgba(0,0,0,.35)
+    }
+    .word-tooltip::after{
+      content:'';position:absolute;top:100%;left:50%;transform:translateX(-50%);
+      border:8px solid transparent;border-top-color:rgba(20,20,20,0.98)
+    }
+    .word.show .word-tooltip{opacity:1}
+    .translation{color:#c07777;font-weight:700;display:block;margin-bottom:6px}
+    .synonym-label{color:#aaa;font-size:.75em;display:block;margin-top:6px}
+    .synonyms{color:#bb86fc;font-style:italic}
+
+    .synonym-option{
+      cursor:pointer;
+      text-decoration:underline;
+    }
+    .synonym-option:hover{
+      text-decoration:none;
+      font-weight:600;
+    }
+
+    .demo-btn{
+      display:inline-block;padding:8px 14px;margin:5px;
+      background:#f0f0f0;border:1px solid #ddd;border-radius:6px;
+      cursor:pointer;font-size:.95em
+    }
+    .demo-btn:hover{background:#667eea;color:#fff}
+
+    .hidden-heading{display:none;}
+  </style>
+</head>
+
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>Paraphrasing Tool</h1>
+    </div>
+
+    <div class="content">
+      <div class="lang-toggle">
+        <button class="lang-btn active" data-lang="te" onclick="setLanguage('te')">Telugu</button>
+        <button class="lang-btn" data-lang="hi" onclick="setLanguage('hi')">Hindi</button>
+        <button class="lang-btn" data-lang="bn" onclick="setLanguage('bn')">Bengali</button>
+      </div>
+
+      <div class="input-section">
+        <label for="telugu-input" class="hidden-heading">Enter Sentence:</label>
+        <div class="input-wrapper">
+          <input type="text" id="telugu-input" />
+          <button class="predict-btn" onclick="predictHyphens()">Go</button>
+          <button class="clear-btn" onclick="clearAll()">Clear</button>
+        </div>
+
+        <div>
+          <strong id="demo-heading" class="hidden-heading">
+            Try examples (<span id="demo-lang-label">Telugu</span>):
+          </strong><br/>
+          <div id="demo-buttons"></div>
+        </div>
+      </div>
+
+      <!-- Romanized Sentence Box -->
+      <div class="romanized-container" id="romanized-container">
+        <div class="romanized-label hidden-heading">Romanized</div>
+        <div class="romanized-text" id="romanized-text"></div>
+      </div>
+
+      <div id="output-section" style="display:none;">
+        <h3 class="hidden-heading" style="margin-top:20px;">Drag to Reorder</h3>
+        <div class="segments-container" id="segments-container"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ---- Safe JSON fetch helper ----
+    async function fetchJSON(url, options = {}) {
+      const res = await fetch(url, { cache: 'no-store', ...options });
+      const ct = (res.headers.get('content-type') || '').toLowerCase();
+      if (!ct.includes('application/json')) {
+        const text = await res.text();
+        throw new Error(`Expected JSON from ${url} (status ${res.status}).\n${text.slice(0,200)}`);
+      }
+      const data = await res.json();
+      if (!res.ok) {
+        const msg = (data && data.error) ? data.error : res.statusText;
+        throw new Error(msg);
+      }
+      return data;
+    }
+
+    let currentLang = 'te';
+    const DEMOS = {
+      te: [
+        'రాముడు సీతను రక్షించాడు',
+        'నాకు పుస్తకాలు చదవడం ఇష్టం',
+        'అతను ప్రతిరోజూ ఉదయం యోగా చేస్తాడు'
+      ],
+      hi: [
+        'राम ने सीता को बचाया',
+        'मुझे किताबें पढ़ना पसंद है',
+        'वह हर रोज सुबह योग करता है'
+      ],
+      bn: [
+        'রাম সীতাকে রক্ষা করেছে',
+        'আমি বই পড়তে ভালোবাসি',
+        'সে প্রতিদিন সকালে যোগব্যায়াম করে'
+      ]
+    };
+
+    const dataCache = new Map();
+
+    function escapeHtml(s){
+      return (s ?? '').replace(/[&<>"]/g, c => (
+        {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]
+      ));
+    }
+
+    const keyForWord = (lang, word) => `${lang}:${word}`;
+
+    function getVisibleWord(span){
+      const node = span.firstChild;
+      if (node && node.nodeType === Node.TEXT_NODE) {
+        return node.nodeValue.trim();
+      }
+      return (span.textContent || "").trim();
+    }
+
+    async function updateRomanizedFromSegments(){
+      const segments = Array.from(document.querySelectorAll('#segments-container .segment'));
+
+      const words = [];
+      segments.forEach(seg => {
+        const wordSpans = seg.querySelectorAll('.word');
+        wordSpans.forEach(span => {
+          const txt = getVisibleWord(span);
+          if (txt) words.push(txt);
+        });
+      });
+
+      const joinedNative = words.join(' ').trim();
+      if (!joinedNative){
+        showRomanized('');
+        return;
+      }
+
+      try {
+        const data = await fetchJSON('/translate', {
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body: JSON.stringify({ text: joinedNative, lang: currentLang })
+        });
+        showRomanized(data.romanized || joinedNative);
+      } catch (e) {
+        console.warn('Romanization failed, showing native text:', e.message);
+        showRomanized(joinedNative);
+      }
+    }
+
+    function showRomanized(text){
+      const box = document.getElementById('romanized-container');
+      const out = document.getElementById('romanized-text');
+      if ((text || '').trim()){
+        out.textContent = text;
+        box.classList.add('show');
+      } else {
+        box.classList.remove('show');
+        out.textContent = '';
+      }
+    }
+
+    async function fetchWordData(word){
+      const trimmed = (word || '').trim();
+      const key = keyForWord(currentLang, trimmed);
+      if (dataCache.has(key)) return dataCache.get(key);
+
+      const data = await fetchJSON('/translate', {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ text: trimmed, lang: currentLang })
+      });
+      const payload = {
+        translation: data.translated || trimmed,
+        synonyms: Array.isArray(data.synonyms) ? data.synonyms : []
+      };
+      dataCache.set(key, payload);
+      return payload;
+    }
+
+    function setLanguage(lang){
+      currentLang = lang;
+
+      document.querySelectorAll('.lang-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.lang === lang);
+      });
+
+      const label = document.getElementById('demo-lang-label');
+      if (label) {
+        if (lang === 'te') label.textContent = 'Telugu';
+        else if (lang === 'hi') label.textContent = 'Hindi';
+        else if (lang === 'bn') label.textContent = 'Bengali';
+      }
+
+      renderDemoButtons();
+    }
+
+    function renderDemoButtons(){
+      const container = document.getElementById('demo-buttons');
+      container.innerHTML = '';
+      DEMOS[currentLang].forEach(sentence => {
+        const span = document.createElement('span');
+        span.className = 'demo-btn';
+        span.textContent = sentence;
+        span.addEventListener('click', () => {
+          document.getElementById('telugu-input').value = sentence;
+          predictHyphens();
+        });
+        container.appendChild(span);
+      });
+    }
+
+    async function predictHyphens() {
+      const input = document.getElementById('telugu-input').value.trim();
+      if (!input) { alert('Please enter a sentence'); return; }
+
+      const output = document.getElementById('output-section');
+      const container = document.getElementById('segments-container');
+      output.style.display = 'block';
+      container.innerHTML = '<div style="text-align:center;padding:20px;">Predicting...</div>';
+
+      try {
+        const data = await fetchJSON('/predict', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({ sentence: input, lang: currentLang })
+        });
+
+        renderSegments(data.segments || []);
+        updateRomanizedFromSegments();
+      } catch (err) {
+        container.innerHTML =
+          `<div style="color:red;white-space:pre-line;padding:20px;"> ${escapeHtml(err.message)}</div>`;
+        showRomanized('');
+      }
+    }
+
+    function buildTooltip(span, tip){
+      const translation = span.dataset.translation || getVisibleWord(span);
+      let syns = [];
+      try { syns = JSON.parse(span.dataset.synonyms || "[]"); } catch(e){ syns = []; }
+
+      const current = getVisibleWord(span);
+      const filtered = syns.filter(s => s && s.trim() !== current);
+
+      let synHtml = '';
+      if (filtered.length){
+        synHtml =
+          `<span class="synonym-label">Synonyms (click to swap)</span>` +
+          `<div class="synonyms">` +
+          filtered.map(s => `<span class="synonym-option">${escapeHtml(s)}</span>`).join(', ') +
+          `</div>`;
+      }
+
+      tip.innerHTML =
+        `<span class="translation">${escapeHtml(translation)}</span>` +
+        synHtml;
+
+      const opts = tip.querySelectorAll('.synonym-option');
+      opts.forEach(opt => {
+        opt.addEventListener('click', ev => {
+          ev.stopPropagation();
+
+          const chosen = opt.textContent.trim();
+          const currentWord = getVisibleWord(span);
+
+          // swap visible text
+          const node = span.firstChild;
+          if (node && node.nodeType === Node.TEXT_NODE) {
+            node.nodeValue = chosen;
+          } else {
+            span.textContent = chosen;
+            span.appendChild(tip);
+          }
+
+          // update synonym list: remove chosen, add previous word
+          let arr = [];
+          try { arr = JSON.parse(span.dataset.synonyms || "[]"); } catch(e){ arr = []; }
+          arr = arr.filter(s => s && s.trim() !== chosen);
+          arr.push(currentWord);
+          arr = [...new Set(arr)];
+          span.dataset.synonyms = JSON.stringify(arr);
+
+          updateRomanizedFromSegments();
+          buildTooltip(span, tip); // refresh options
+        });
+      });
+    }
+
+    function renderSegments(segments) {
+      const container = document.getElementById('segments-container');
+      container.innerHTML = '';
+
+      segments.forEach((seg, idx) => {
+        const chip = document.createElement('div');
+        chip.className = `segment color-${(idx % 5) + 1}`;
+        chip.draggable = true;
+
+        const text = (seg.text || '').trim();
+        const words = text.split(/\s+/);
+
+        words.forEach((origWord, i) => {
+          const span = document.createElement('span');
+          span.className = 'word';
+
+          span.dataset.original = origWord;
+          span.dataset.loaded = "0";
+          span.dataset.synonyms = "[]";
+          span.dataset.translation = "";
+
+          const textNode = document.createTextNode(origWord);
+          span.appendChild(textNode);
+
+          const tip = document.createElement('div');
+          tip.className = 'word-tooltip';
+          tip.innerHTML = '<span style="color:#aaa;">Loading...</span>';
+          span.appendChild(tip);
+
+          // Hover in → show tooltip; load data on first hover
+          span.addEventListener('mouseenter', async () => {
+            span.classList.add('show');
+            try {
+              if (span.dataset.loaded !== "1") {
+                const baseWord = span.dataset.original || origWord;
+                const d = await fetchWordData(baseWord);
+                let syns = Array.isArray(d.synonyms) ? d.synonyms.slice(0, 6) : [];
+                syns.push(baseWord); // ensure base word available
+                syns = [...new Set(syns)];
+                span.dataset.synonyms = JSON.stringify(syns);
+                span.dataset.translation = d.translation || baseWord;
+                span.dataset.loaded = "1";
+              }
+              buildTooltip(span, tip);
+            } catch (err) {
+              tip.innerHTML = `<span style="color:#ff5252;">${escapeHtml(err.message)}</span>`;
+            }
+          });
+
+          chip.appendChild(span);
+          if (i !== words.length - 1) chip.appendChild(document.createTextNode(' '));
+        });
+
+        chip.addEventListener('dragstart', handleDragStart);
+        chip.addEventListener('dragover', handleDragOver);
+        chip.addEventListener('drop', handleDrop);
+        chip.addEventListener('dragend', handleDragEnd);
+
+        container.appendChild(chip);
+      });
+
+      updateRomanizedFromSegments();
+    }
+
+    function clearAll(){
+      document.getElementById('telugu-input').value = '';
+      const container = document.getElementById('segments-container');
+      if (container) container.innerHTML = '';
+      const output = document.getElementById('output-section');
+      if (output) output.style.display = 'none';
+      showRomanized('');
+    }
+
+    // Drag helpers
+    let dragged = null;
+    function handleDragStart(){ dragged = this; this.style.opacity = '0.6'; }
+    function handleDragOver(e){ e.preventDefault(); return false; }
+    function handleDrop(e){
+      e.stopPropagation();
+      if (dragged !== this) {
+        const container = document.getElementById('segments-container');
+        const all = Array.from(container.querySelectorAll('.segment'));
+        const a = all.indexOf(dragged), b = all.indexOf(this);
+        if (a < b) this.parentNode.insertBefore(dragged, this.nextSibling);
+        else this.parentNode.insertBefore(dragged, this);
+        reassignColors();
+        updateRomanizedFromSegments();
+      }
+      return false;
+    }
+    function handleDragEnd(){ this.style.opacity = '1'; }
+    function reassignColors(){
+      const items = document.querySelectorAll('.segment');
+      items.forEach((it, i) => {
+        it.className = it.className.replace(/color-\d+/g, '').trim();
+        it.classList.add(`segment`, `color-${(i % 5) + 1}`);
+      });
+    }
+
+    // 🔑 Global mousemove: close tooltips when not over word/tooltip
+    document.addEventListener('mousemove', (e) => {
+      const target = e.target;
+      if (!target.closest('.word') && !target.closest('.word-tooltip')) {
+        document.querySelectorAll('.word.show').forEach(w => w.classList.remove('show'));
+      }
+    });
+
+    // Initial demo + health check
+    window.addEventListener('load', async () => {
+      setLanguage('te');
+      try {
+        const health = await fetchJSON('/health');
+        console.log('Health:', health);
+      } catch (e) {
+        console.warn('Health check failed:', e.message);
+      }
+    });
+  </script>
+</body>
+</html>

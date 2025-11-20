@@ -1,0 +1,16 @@
+# Ignore model weight folders
+best_model/
+best_model_hindi/
+best_model_bengali/
+
+# Common large files
+*.safetensors
+*.bin
+
+# Python junk
+__pycache__/
+*.pyc
+
+# Env
+.env
+venv/
